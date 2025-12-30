@@ -9,7 +9,10 @@ function HomePage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <img src={kruisinga_logo}/>
             <button className='homebuttons'>Leskaarten bekijken</button>
-            <button className='homebuttons'>Leerling toevoegen</button>
+            {/* 2d array met alle waardes van de leskaart opslaan als de kaart
+            dan weergeven als tabel */}
+            <button className='homebuttons' onClick={() => navigate('/leerlingtoevoegen')}>Leerling toevoegen</button>
+            {/* een database met alle leerlingen + gegevens en dan de 2d array toevoegen */}
             <button className='homebuttons'>Archief bekijken</button>
             <button className='homebuttons'>Leskaarten downloaden</button>
             <button className='homebuttons' onClick={() => navigate('/videos')}>Video's bekijken</button>
