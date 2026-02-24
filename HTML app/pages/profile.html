@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1f2937">
+  <meta charset="UTF-8">
+  <title>Leerling Profiel</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .field-row {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    .label {
+      font-weight: bold;
+      width: 200px;
+    }
+
+    .value {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      min-width: 200px;
+    }
+
+    .value:hover {
+      background: #f2f2f2;
+    }
+
+    input[type="text"], input[type="date"], input[type="number"] {
+      padding: 4px;
+      width: 250px;
+    }
+
+    input[type="checkbox"] {
+      margin-left: 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <h2 id="leerlingnaam"></h2>
+
+  <div id="profiel"></div>
+
+  <br>
+  <button id="saveBtn" class="homebuttons">Opslaan wijzigingen</button>
+
+  <div class="buttons-row">
+    <button id="archiveBtn" class="homebuttons">Archiveer leerling</button>
+    <button id="notesBtn" class="homebuttons">Bekijk notities</button>
+    <a href="archief.html">
+      <button type="button" class="homebuttons">Terug</button>
+    </a>
+  </div>
+
+</div>
+
+<script>
+let db;
+const APP_KEY = "tSrOLboXzoLGawI3CfjNtK3v5VGFWtGh";
+
+// ===== IndexedDB setup =====
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("KruisingaDB", 2);
+
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ===== Encrypt / Decrypt =====
+async function getKey() {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", enc.encode(APP_KEY), "PBKDF2", false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: enc.encode("rijschool-salt"), iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt","decrypt"]
+  );
+}
+
+async function encrypt(str) {
+  const key = await getKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(str));
+  return { data: Array.from(new Uint8Array(encrypted)), iv: Array.from(iv) };
+}
+
+async function decrypt(field) {
+  if (!field || !field.data) return "";
+  const key = await getKey();
+  const encrypted = new Uint8Array(field.data);
+  const iv = new Uint8Array(field.iv);
+  const dec = new TextDecoder();
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, encrypted);
+  return dec.decode(decrypted);
+}
+
+// ===== Helpers =====
+function getIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return Number(params.get("id"));
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+function createField(label, value, encrypted=false) {
+  return `
+    <div class="field-row">
+      <span class="label">${label}:</span>
+      <span class="value ${encrypted ? "encrypted" : ""}" data-field="${label}">${value || ""}</span>
+    </div>
+  `;
+}
+
+function createCheckbox(field, value, label) {
+  return `
+    <div class="field-row">
+      <span class="label">${label}:</span>
+      <input type="checkbox" data-field="${field}" ${value ? "checked" : ""} />
+    </div>
+  `;
+}
+
+function createDateField(field, value, label) {
+  // value in yyyy-mm-dd for <input type="date">
+  return `
+    <div class="field-row">
+      <span class="label">${label}:</span>
+      <input type="date" data-field="${field}" value="${value || ""}" />
+    </div>
+  `;
+}
+
+// ===== Load leerling =====
+async function loadLeerling() {
+  const id = getIdFromUrl();
+  const tx = db.transaction("leerlingen", "readonly");
+  const store = tx.objectStore("leerlingen");
+  const request = store.get(id);
+
+  request.onsuccess = async () => {
+    const l = request.result;
+    if (!l) return;
+
+    // fallback voor oude records
+    if (l.DigiDGemachtigd === undefined) l.DigiDGemachtigd = false;
+    if (l.Gezondheidsverklaring === undefined) l.Gezondheidsverklaring = false;
+    if (!l.Examendatum) l.Examendatum = "";
+
+    document.getElementById("leerlingnaam").textContent = l.Voornaam + " " + l.Achternaam;
+
+    document.getElementById("profiel").innerHTML = `
+      ${createField("Voornaam", l.Voornaam)}
+      ${createField("Achternaam", l.Achternaam)}
+      ${createField("Adres", await decrypt(l.Adres), true)}
+      ${createField("Postcode", await decrypt(l.Postcode), true)}
+      ${createField("Woonplaats", await decrypt(l.Woonplaats), true)}
+      ${createField("Email", await decrypt(l.Email), true)}
+      ${createField("Telefoonnummer", await decrypt(l.Telefoonnummer), true)}
+      ${createField("Geboortedatum", formatDate(await decrypt(l.Geboortedatum)), true)}
+      ${createField("MedischeBijzonderheden", await decrypt(l.MedischeBijzonderheden), true)}
+      ${createField("CBRnummer", l.CBRnummer)}
+      ${createField("Theoriedatum", formatDate(l.Theoriedatum))}
+      ${createCheckbox("DigiDGemachtigd", l.DigiDGemachtigd, "DigiD gemachtigd")}
+      ${createCheckbox("Gezondheidsverklaring", l.Gezondheidsverklaring, "Gezondheidsverklaring ingediend")}
+      ${createDateField("Examendatum", l.Examendatum, "Examendatum")}
+    `;
+
+    enableEditing(l);
+
+    document.getElementById("archiveBtn").onclick = () => archiveLeerling(l);
+    document.getElementById("notesBtn").onclick = () => {
+      window.location.href = `notes.html?leerling_id=${l.id}`;
+    };
+  };
+}
+
+// ===== Editing / Save =====
+function enableEditing(leerling) {
+  document.querySelectorAll(".value").forEach(el => {
+    el.addEventListener("click", function () {
+      if (this.querySelector("input")) return;
+
+      const field = this.dataset.field;
+      const value = this.textContent.trim();
+
+      this.innerHTML = `<input value="${value}" data-field="${field}" />`;
+    });
+  });
+
+  document.getElementById("saveBtn").onclick = () => saveChanges(leerling);
+}
+
+async function saveChanges(leerling) {
+  const inputs = document.querySelectorAll("#profiel input[type='text'], #profiel input[type='date'], #profiel input[type='number']");
+  for (const input of inputs) {
+    const field = input.dataset.field;
+    let value = input.value;
+
+    if (field === "CBRnummer") {
+      leerling[field] = Number(value);
+      continue;
+    }
+
+    if (input.parentElement.querySelector(".encrypted") || input.dataset.encrypted === "true") {
+      leerling[field] = await encrypt(value);
+    } else {
+      leerling[field] = value;
+    }
+  }
+
+  // checkboxes
+  document.querySelectorAll("#profiel input[type='checkbox']").forEach(cb => {
+    leerling[cb.dataset.field] = cb.checked;
+  });
+
+  const tx = db.transaction("leerlingen", "readwrite");
+  const store = tx.objectStore("leerlingen");
+  store.put(leerling);
+
+  tx.oncomplete = () => {
+    alert("Wijzigingen opgeslagen!");
+    loadLeerling();
+  };
+}
+
+// ===== Archive =====
+function archiveLeerling(leerling) {
+  leerling.Actief = false;
+
+  const tx = db.transaction("leerlingen", "readwrite");
+  const store = tx.objectStore("leerlingen");
+  store.put(leerling);
+
+  tx.oncomplete = () => {
+    alert("Leerling gearchiveerd!");
+    window.location.href = "archief.html";
+  };
+}
+
+// ===== Init =====
+window.addEventListener("DOMContentLoaded", async () => {
+  await openDB();
+  await loadLeerling();
+});
+</script>
+
+</body>
+</html>

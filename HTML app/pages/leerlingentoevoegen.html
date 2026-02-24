@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1f2937">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leerling Toevoegen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="page">
+    <form class="form" id="leerlingForm">
+      
+      <div class="form-row">
+        <div class="field">
+          <label>Voornaam</label>
+          <input name="Voornaam" required />
+        </div>
+        <div class="field">
+          <label>Achternaam</label>
+          <input name="Achternaam" required />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Adres</label>
+          <input name="Adres" />
+        </div>
+        <div class="field">
+          <label>Postcode</label>
+          <input name="Postcode" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Woonplaats</label>
+          <input name="Woonplaats" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Email</label>
+          <input name="Email" type="email" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Telefoonnummer</label>
+          <input name="Telefoonnummer" />
+        </div>
+        <div class="field">
+          <label>Geboortedatum</label>
+          <input name="Geboortedatum" type="date" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Medische bijzonderheden</label>
+          <input name="MedischeBijzonderheden" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>CBR nummer</label>
+          <input name="CBRnummer" type="number" />
+        </div>
+        <div class="field">
+          <label>Theorie datum</label>
+          <input name="Theoriedatum" type="date" />
+        </div>
+      </div>
+
+      <div class="buttons-row">
+        <button type="submit" class="homebuttons">Confirm</button>
+        <a href="index.html"><button type = "button" class="homebuttons">Terug</button></a>
+      </div>
+    </form>
+  </div> 
+  <script>
+    let db;
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open("KruisingaDB", 2);
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+
+          if (!db.objectStoreNames.contains("leerlingen")) {
+            db.createObjectStore("leerlingen", {
+              keyPath: "id",
+              autoIncrement: true
+            });
+          }
+
+          if (!db.objectStoreNames.contains("notes")) {
+            const notesStore = db.createObjectStore("notes", {
+              keyPath: "id",
+              autoIncrement: true
+            });
+
+            notesStore.createIndex("leerling_id", "leerling_id", { unique: false });
+          }
+        };
+
+        request.onsuccess = () => {
+          db = request.result;
+          resolve(db);
+        };
+
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    const APP_KEY = "tSrOLboXzoLGawI3CfjNtK3v5VGFWtGh";
+
+    async function getKey() {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(APP_KEY),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+      );
+
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: enc.encode("rijschool-salt"), iterations: 100000, hash: "SHA-256" },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encrypt(str) {
+      const key = await getKey();
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const enc = new TextEncoder();
+      const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        enc.encode(str)
+      );
+
+      return {
+        data: Array.from(new Uint8Array(encrypted)),
+        iv: Array.from(iv)
+      };
+    }
+
+    document.getElementById("leerlingForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      await openDB();
+
+      const formData = new FormData(this);
+      const leerling = Object.fromEntries(formData.entries());
+
+      if (leerling.CBRnummer) leerling.CBRnummer = Number(leerling.CBRnummer);
+      leerling.Actief = true;
+
+      leerling.Adres = await encrypt(leerling.Adres || "");
+      leerling.Postcode = await encrypt(leerling.Postcode || "");
+      leerling.Woonplaats = await encrypt(leerling.Woonplaats || "");
+      leerling.Telefoonnummer = await encrypt(leerling.Telefoonnummer || "");
+      leerling.Email = await encrypt(leerling.Email || "");
+      leerling.Geboortedatum = await encrypt(leerling.Geboortedatum || "");
+      leerling.MedischeBijzonderheden = await encrypt(leerling.MedischeBijzonderheden || "");
+
+      const tx = db.transaction("leerlingen", "readwrite");
+      const store = tx.objectStore("leerlingen");
+      store.add(leerling);
+
+      tx.oncomplete = () => {
+        window.location.href = "index.html";
+      };
+
+      tx.onerror = () => {
+        alert("Opslaan mislukt.");
+      };
+    });
+  </script>
+</body>
+</html>
