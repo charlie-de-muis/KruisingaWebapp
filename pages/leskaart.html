@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#1f2937">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leskaart</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #tableContainer {
+      overflow: auto;
+      max-height: 80vh;
+      border: 1px solid #ccc;
+    }
+    table {
+      border-collapse: collapse;
+      width: max-content;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 4px;
+      text-align: center;
+      min-width: 50px;
+    }
+    th.sticky {
+      position: sticky;
+      top: 0;
+      background: #2980b9;
+      color: white;
+      z-index: 2;
+    }
+    td.sticky {
+      position: sticky;
+      left: 0;
+      background: #ecf0f1;
+      z-index: 1;
+      font-weight: bold;
+    }
+    input[type="number"] {
+      width: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Leskaart</h2>
+
+<select id="leerlingSelect">
+  <option value="">Selecteer leerling</option>
+</select>
+<div id="tableContainer"></div>
+
+<div>
+  <button id="profileBtn">Gegevens</button>
+  <button id="notesBtn">Notities</button>
+  <button id="saveBtn" style="margin-top: 8px;">Opslaan</button>
+  <a href="../index.html"><button class="homebuttons">Terug</button></a>
+</div>
+
+<script>
+let db;
+const onderdelenNamen = [
+  "Theorie", 
+  "Praktijk basis", 
+  "Rijvaardigheid", 
+  "Verkeersinzicht",
+  "Parkeren", 
+  "File rijden", 
+  "Snelweg", 
+  "Afsluiting"
+];
+const onderdelen = onderdelenNamen.length;
+const lessen = 60;
+
+/* =========================
+   DATABASE
+========================= */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("KruisingaDB", 3);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains("leerlingen")) {
+        db.createObjectStore("leerlingen", { keyPath: "id", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains("notes")) {
+        const store = db.createObjectStore("notes", { keyPath: "id", autoIncrement: true });
+        store.createIndex("leerling_id", "leerling_id", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("leskaarten")) {
+        const store = db.createObjectStore("leskaarten", { keyPath: "id", autoIncrement: true });
+        store.createIndex("leerling_id", "leerling_id", { unique: true });
+      }
+    };
+    request.onsuccess = () => { db = request.result; resolve(db); };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/* =========================
+   LEERLINGEN LADEN
+========================= */
+function loadLeerlingen() {
+  const tx = db.transaction("leerlingen", "readonly");
+  const store = tx.objectStore("leerlingen");
+  const request = store.getAll();
+  request.onsuccess = () => {
+    const actieve = request.result.filter(l => l.Actief);
+    const select = document.getElementById("leerlingSelect");
+    select.innerHTML = '<option value="">Selecteer leerling</option>';
+    actieve.forEach(l => {
+      select.innerHTML += `<option value="${l.id}">${l.Voornaam} ${l.Achternaam}</option>`;
+    });
+  };
+}
+
+/* =========================
+   TABEL GENEREREN (Lessen verticaal)
+========================= */
+function generateTable() {
+  let html = `<table><tr><th class="sticky">Les</th>`;
+  onderdelenNamen.forEach(naam => html += `<th class="sticky">${naam}</th>`);
+  html += `</tr>`;
+
+  for (let les = 1; les <= lessen; les++) {
+    html += `<tr><td class="sticky">L${les}</td>`;
+    for (let ond = 1; ond <= onderdelen; ond++) {
+      html += `<td><input type="number" min="1" max="8" data-les="${les}" data-ond="${ond}"></td>`;
+    }
+    html += `</tr>`;
+  }
+
+  html += `</table>`;
+  document.getElementById("tableContainer").innerHTML = html;
+
+  const container = document.getElementById("tableContainer");
+  container.scrollTop = 0;
+  container.scrollLeft = 0;
+
+  addAutoFillLogic();
+}
+
+/* =========================
+   AUTO FILL
+========================= */
+function addAutoFillLogic() {
+  const inputs = document.querySelectorAll("input[type='number']");
+  inputs.forEach(input => {
+    input.addEventListener("change", function() {
+      const les = Number(this.dataset.les);
+      const ond = this.dataset.ond;
+      const value = this.value;
+      if (!value) return;
+
+      const colInputs = document.querySelectorAll(`input[data-ond='${ond}']`);
+      let lastFilledLes = null;
+      let lastValue = null;
+      colInputs.forEach(i => {
+        const currentLes = Number(i.dataset.les);
+        if (currentLes < les && i.value) {
+          lastFilledLes = currentLes;
+          lastValue = i.value;
+        }
+      });
+      if (lastFilledLes !== null) {
+        colInputs.forEach(i => {
+          const currentLes = Number(i.dataset.les);
+          if (currentLes > lastFilledLes && currentLes < les && !i.value) i.value = lastValue;
+        });
+      }
+    });
+  });
+}
+
+/* =========================
+   OPSLAAN
+========================= */
+async function saveLeskaart() {
+  const leerlingId = Number(document.getElementById("leerlingSelect").value);
+  if (!leerlingId) {
+    alert("Selecteer eerst een leerling.");
+    return;
+  }
+
+  const data = {};
+  document.querySelectorAll("input[type='number']").forEach(input => {
+    const key = `o${input.dataset.ond}l${input.dataset.les}`;
+    data[key] = input.value ? Number(input.value) : null;
+  });
+
+  // Eerst kijken of er al een leskaart is
+  const txRead = db.transaction("leskaarten", "readonly");
+  const storeRead = txRead.objectStore("leskaarten");
+  const index = storeRead.index("leerling_id");
+  const getRequest = index.get(leerlingId);
+
+  getRequest.onsuccess = () => {
+    const existing = getRequest.result;
+    const txWrite = db.transaction("leskaarten", "readwrite");
+    const storeWrite = txWrite.objectStore("leskaarten");
+
+    const record = existing 
+      ? { id: existing.id, leerling_id: leerlingId, data } // update bestaande
+      : { leerling_id: leerlingId, data };               // nieuw record
+
+    const putRequest = storeWrite.put(record);
+
+    putRequest.onsuccess = () => {
+      alert("Leskaart opgeslagen!");
+      window.location.href = "../index.html";
+    };
+
+    putRequest.onerror = (e) => {
+      console.error("Fout bij opslaan:", e.target.error);
+      alert("Opslaan mislukt, check console.");
+    };
+  };
+
+  getRequest.onerror = (e) => {
+    console.error("Fout bij ophalen bestaande leskaart:", e.target.error);
+    alert("Opslaan mislukt, check console.");
+  };
+}
+
+/* =========================
+   LADEN BESTAANDE DATA
+========================= */
+function loadLeskaart(leerlingId) {
+  generateTable();
+  const tx = db.transaction("leskaarten", "readonly");
+  const store = tx.objectStore("leskaarten");
+  const index = store.index("leerling_id");
+  const request = index.get(leerlingId);
+
+  request.onsuccess = () => {
+    const result = request.result;
+    if (!result) return;
+    const data = result.data;
+    document.querySelectorAll("input[type='number']").forEach(input => {
+      const key = `o${input.dataset.ond}l${input.dataset.les}`;
+      if (data[key] !== null && data[key] !== undefined) input.value = data[key];
+    });
+  };
+}
+
+/* =========================
+   EVENTS
+========================= */
+document.addEventListener("DOMContentLoaded", async () => {
+  await openDB();
+  loadLeerlingen();
+
+  document.getElementById("leerlingSelect").addEventListener("change", function() {
+    if (this.value) loadLeskaart(Number(this.value));
+    else document.getElementById("tableContainer").innerHTML = "";
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", saveLeskaart);
+  document.getElementById("profileBtn").addEventListener("click", () => {
+    const id = Number(document.getElementById("leerlingSelect").value);
+    if (!id) return alert("Selecteer eerst een leerling.");
+    window.location.href = `profile.html?id=${id}`;
+  });
+  document.getElementById("notesBtn").addEventListener("click", () => {
+    const id = Number(document.getElementById("leerlingSelect").value);
+    if (!id) return alert("Selecteer eerst een leerling.");
+    window.location.href = `notes.html?leerling_id=${id}`;
+  });
+});
+</script>
+
+</body>
+</html>

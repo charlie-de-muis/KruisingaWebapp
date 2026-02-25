@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <link rel="manifest" href="../manifest.json">
+  <meta name="theme-color" content="#1f2937">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leskaart downloaden</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h2>Leskaart downloaden</h2>
+
+<select id="leerlingSelect">
+  <option value="">Selecteer leerling</option>
+</select>
+<button id="downloadBtn">Download</button>
+<button class="homebuttons" onclick="window.history.back()">Terug</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+let db;
+
+// ===== IndexedDB openen =====
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("KruisingaDB", 3);
+
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ===== Leerlingen ophalen =====
+async function loadLeerlingen() {
+  const tx = db.transaction("leerlingen", "readonly");
+  const store = tx.objectStore("leerlingen");
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const actieve = request.result.filter(l => l.Actief);
+    const select = document.getElementById("leerlingSelect");
+    select.innerHTML = '<option value="">Selecteer leerling</option>';
+
+    actieve.forEach(l => {
+      const opt = document.createElement("option");
+      opt.value = l.id;
+      opt.textContent = `${l.Voornaam} ${l.Achternaam}`;
+      select.appendChild(opt);
+    });
+  };
+}
+
+// ===== Leskaart ophalen =====
+async function getLeskaart(leerlingId) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("leskaarten", "readonly");
+    const store = tx.objectStore("leskaarten");
+    const index = store.index("leerling_id");
+    const request = index.get(Number(leerlingId));
+
+    request.onsuccess = () => resolve(request.result?.data || {});
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ===== Leerling ophalen =====
+async function getLeerling(leerlingId) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("leerlingen", "readonly");
+    const store = tx.objectStore("leerlingen");
+    const request = store.get(Number(leerlingId));
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ===== PDF code =====
+const onderdelenNamen = [
+  "Theorie", 
+  "Praktijk basis", 
+  "Rijvaardigheid", 
+  "Verkeersinzicht",
+  "Parkeren", 
+  "File rijden", 
+  "Snelweg", 
+  "Afsluiting"
+];
+
+async function downloadLeskaartPDF(leerling, leskaart) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text(`Leskaart ${leerling.Voornaam} ${leerling.Achternaam}`, 14, 20);
+
+  // Bepaal hoeveel lessen daadwerkelijk gevuld zijn
+  const ingevuldeLessen = Object.keys(leskaart)
+    .filter(k => leskaart[k] !== null && leskaart[k] !== undefined)
+    .map(k => Number(k.match(/l(\d+)$/)[1]));
+  const maxLes = ingevuldeLessen.length ? Math.max(...ingevuldeLessen) : 0;
+
+  // Header: onderdelen horizontaal
+  const header = ["Les"];
+  onderdelenNamen.forEach(name => header.push(name));
+
+  // Body: lessen verticaal
+  const body = [];
+  for (let les = 1; les <= maxLes; les++) {
+    const row = [ `L${les}` ];
+    onderdelenNamen.forEach((_, idx) => {
+      const key = `o${idx+1}l${les}`;
+      row.push(leskaart[key] ?? "");
+    });
+    body.push(row);
+  }
+
+  doc.autoTable({
+    startY: 30,
+    head: [header],
+    body: body,
+    theme: 'grid',
+    styles: { fontSize: 10, cellPadding: 2 },
+    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+    margin: { top: 25, left: 10, right: 10 },
+    pageBreak: 'auto',
+  });
+
+  doc.save(`Leskaart_${leerling.Voornaam}_${leerling.Achternaam}.pdf`);
+}
+
+// ===== Event listener =====
+document.getElementById("downloadBtn").addEventListener("click", async () => {
+  const leerlingId = document.getElementById("leerlingSelect").value;
+  if (!leerlingId) return alert("Selecteer eerst een leerling");
+
+  const leerling = await getLeerling(leerlingId);
+  const leskaart = await getLeskaart(leerlingId);
+  downloadLeskaartPDF(leerling, leskaart);
+});
+
+// ===== Init =====
+window.addEventListener("DOMContentLoaded", async () => {
+  await openDB();
+  await loadLeerlingen();
+});
+</script>
+</body>
+</html>

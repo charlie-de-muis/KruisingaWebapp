@@ -62,9 +62,18 @@ body {
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
+      justify-content: center;
       align-items: center;
       gap: 20px;
       padding: 40px;
+      min-height: 80vh;
+}
+
+.page {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 h1 {
@@ -141,4 +150,38 @@ video {
   font-size: 16px;
   border-radius: 6px;
   border: 1px solid #ccc;
+}
+
+#tableContainer {
+  max-height: 80vh;     /* verticale scroll als tabel te hoog is */
+  overflow: auto;        /* horizontaal en verticaal scrollen */
+  border: 1px solid #ccc;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: max-content;  /* breedte past zich aan aan content */
+}
+
+th, td {
+  border: 1px solid #aaa;
+  padding: 4px;
+  text-align: center;
+}
+
+th {
+  background-color: #2980b9;
+  color: white;
+  position: sticky;
+  top: 0;            /* header blijft bovenaan */
+  z-index: 2;
+}
+
+td:first-child, th:first-child {
+  position: sticky;
+  left: 0;           /* eerste kolom blijft zichtbaar bij horizontaal scrollen */
+  background-color: #f2f2f2;
+  z-index: 1;
+  text-align: left;
+  font-weight: bold;
 }

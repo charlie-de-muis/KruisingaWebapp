@@ -2,7 +2,7 @@
 <html lang="nl">
 
 <head>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="../manifest.json">
   <meta name="theme-color" content="#1f2937">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,7 +80,7 @@
       </div>
 
       <div class="buttons-row">
-        <button type="submit" class="homebuttons">Confirm</button>
+        <button type="submit">Opslaan</button>
         <a href="../index.html"><button type = "button" class="homebuttons">Terug</button></a>
       </div>
     </form>
@@ -90,7 +90,7 @@
 
     function openDB() {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open("KruisingaDB", 2);
+        const request = indexedDB.open("KruisingaDB", 3);
 
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
@@ -109,6 +109,15 @@
             });
 
             notesStore.createIndex("leerling_id", "leerling_id", { unique: false });
+          }
+
+          if (!db.objectStoreNames.contains("leskaarten")) {
+            const store = db.createObjectStore("leskaarten", {
+              keyPath: "id",
+              autoIncrement: true
+            });
+
+            store.createIndex("leerling_id", "leerling_id", { unique: true });
           }
         };
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="../manifest.json">
   <meta name="theme-color" content="#1f2937">
   <meta charset="UTF-8">
   <title>Leerling Profiel</title>
@@ -43,19 +43,19 @@
 
 <div class="page">
 
-  <h2 id="leerlingnaam"></h2>
+  <h2 id="leerlingnaam" style="margin-bottom: 0; padding-bottom: 0; color: var(--kruisingablauw);"></h2>
+  <h3 id="status" style="margin-top: 0; padding-top: 0; color: var(--kruisingablauw);"></h3>
 
   <div id="profiel"></div>
 
   <br>
-  <button id="saveBtn" class="homebuttons">Opslaan wijzigingen</button>
+  <button id="saveBtn" style="margin-bottom: 8px;">Wijzigingen opslaan</button>
 
-  <div class="buttons-row">
-    <button id="archiveBtn" class="homebuttons">Archiveer leerling</button>
-    <button id="notesBtn" class="homebuttons">Bekijk notities</button>
-    <a href="archief.html">
-      <button type="button" class="homebuttons">Terug</button>
-    </a>
+  <div>
+    <button id="archiveBtn" class="homebuttons" style="margin-right: 5px;">Archiveer leerling</button>
+    <button id="notesBtn" class="homebuttons" style="margin: 5px;">Bekijk notities</button>
+    <button type="button" class="homebuttons" style="margin: 5px;" onclick="window.history.back()">Terug</button>
+
   </div>
 
 </div>
@@ -67,7 +67,7 @@ const APP_KEY = "tSrOLboXzoLGawI3CfjNtK3v5VGFWtGh";
 // ===== IndexedDB setup =====
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("KruisingaDB", 2);
+    const request = indexedDB.open("KruisingaDB", 3);
 
     request.onsuccess = () => {
       db = request.result;
@@ -171,6 +171,15 @@ async function loadLeerling() {
     if (!l.Examendatum) l.Examendatum = "";
 
     document.getElementById("leerlingnaam").textContent = l.Voornaam + " " + l.Achternaam;
+    const statusEl = document.getElementById("status");
+
+    if (l.Actief) {
+      statusEl.textContent = "Actief";
+      statusEl.style.color = "green";
+    } else {
+      statusEl.textContent = "Inactief";
+      statusEl.style.color = "red";
+    }
 
     document.getElementById("profiel").innerHTML = `
       ${createField("Voornaam", l.Voornaam)}
