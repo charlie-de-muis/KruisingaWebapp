@@ -20,26 +20,73 @@
 <select id="leerlingSelect">
   <option value="">Selecteer leerling</option>
 </select>
-<div id="tableContainer"></div>
-
 <div>
   <button id="profileBtn">Gegevens</button>
   <button id="notesBtn">Notities</button>
   <button id="saveBtn" style="margin-top: 8px;">Opslaan</button>
   <a href="../index.html"><button class="homebuttons">Terug</button></a>
 </div>
+<div id="tableContainer"></div>
+
 
 <script>
 let db;
 const onderdelenNamen = [
-  "Theorie", 
-  "Praktijk basis", 
-  "Rijvaardigheid", 
-  "Verkeersinzicht",
-  "Parkeren", 
-  "File rijden", 
-  "Snelweg", 
-  "Afsluiting"
+  "Controle buiten de auto", 
+  "Controle in de auto", 
+  "Instappen", 
+  "Uitstappen",
+  "Zithouding",
+  "Stuurhouding", 
+  "Afstellen spiegels", 
+  "Starten/afzetten", 
+  "Gas geven",
+  "Scannen",
+  "Sturen",
+  "Positie",
+  "Remmen",
+  "Ontkoppelen",
+  "Stoppen",
+  "Koppelen",
+  "Schakelen",
+  "Technisch wegrijden",
+  "Wegrijden/stoppen",
+  "Volgafstand",
+  "Ruimtekussen",
+  "Tegemoetkomen",
+  "Ingehaald worden",
+  "Kruispunten",
+  "Afslaan",
+  "Hellingproef",
+  "Recht achteruit",
+  "Bocht achteruit",
+  "Parkeren",
+  "Vooruit fileparkeren",
+  "Achteruit fileparkeren",
+  "Vooruit in vak",
+  "Achteruit in vak",
+  "Omkeren halve draai",
+  "Omkeren steken",
+  "Kruispunten",
+  "Afslaan",
+  "Bijzondere verrichtingen & scan",
+  "Zijdelings verplaatsen",
+  "Voorbijgaan",
+  "Inhalen",
+  "Invoegen",
+  "Uitvoegen",
+  "Rotonde",
+  "Erven",
+  "Spoorwegovergang",
+  "Voetgangersoversteekplaats",
+  "Tram- en bushalte",
+  "Moeilijke omstandigheden",
+  "Zelfstandige ritvoorbereiding",
+  "ROSO-training",
+  "Milieuverantwoord rijden",
+  "Defensief rijden",
+  "Aangepast en besluitvaardig",
+  "Mentaliteit & verantwoordelijkheid"
 ];
 const onderdelen = onderdelenNamen.length;
 const lessen = 60;

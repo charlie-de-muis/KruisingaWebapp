@@ -87,19 +87,66 @@ async function getLeerling(leerlingId) {
 
 // ===== PDF code =====
 const onderdelenNamen = [
-  "Theorie", 
-  "Praktijk basis", 
-  "Rijvaardigheid", 
-  "Verkeersinzicht",
-  "Parkeren", 
-  "File rijden", 
-  "Snelweg", 
-  "Afsluiting"
+  "1", 
+  "2", 
+  "3", 
+  "4",
+  "5",
+  "6", 
+  "7", 
+  "8", 
+  "9",
+  "10",
+  "11",
+  "12",
+  "13",
+  "14",
+  "15",
+  "16",
+  "17",
+  "18",
+  "19",
+  "20",
+  "21",
+  "22",
+  "23",
+  "24",
+  "25",
+  "26",
+  "27a",
+  "27b",
+  "28",
+  "28a",
+  "28b",
+  "28g",
+  "28h",
+  "29a",
+  "29b",
+  "H",
+  "H",
+  "H",
+  "30",
+  "31",
+  "32",
+  "33",
+  "34",
+  "35",
+  "36",
+  "37",
+  "38",
+  "39",
+  "40",
+  "41",
+  "42",
+  "43",
+  "44",
+  "45",
+  "46"
 ];
 
 async function downloadLeskaartPDF(leerling, leskaart) {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF('l', 'mm', 'a4');
 
   doc.setFontSize(16);
   doc.text(`Leskaart ${leerling.Voornaam} ${leerling.Achternaam}`, 14, 20);
@@ -130,9 +177,23 @@ async function downloadLeskaartPDF(leerling, leskaart) {
     head: [header],
     body: body,
     theme: 'grid',
-    styles: { fontSize: 10, cellPadding: 2 },
-    headStyles: { fillColor: [5, 161, 227], textColor: 255, fontStyle: 'bold' },
-    margin: { top: 25, left: 10, right: 10 },
+
+    styles: {
+      fontSize: 7,          // 👈 kleiner lettertype
+      cellPadding: 1,       // 👈 minder ruimte in cellen
+      halign: 'center',
+      valign: 'middle'
+    },
+
+    headStyles: {
+      fillColor: [5, 161, 227],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 7
+    },
+
+    tableWidth: 'wrap',     // 👈 tabel zo compact mogelijk
+    margin: { left: 5, right: 5 },  // 👈 meer ruimte benutten
     pageBreak: 'auto',
   });
 
