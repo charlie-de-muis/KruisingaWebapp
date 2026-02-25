@@ -209,7 +209,15 @@ async function loadLeerling() {
 
     enableEditing(l);
 
-    document.getElementById("archiveBtn").onclick = () => archiveLeerling(l);
+    const archiveBtn = document.getElementById("archiveBtn");
+
+    if (l.Actief) {
+      archiveBtn.textContent = "Archiveer leerling";
+      archiveBtn.onclick = () => toggleArchive(leerling = l, false);
+    } else {
+      archiveBtn.textContent = "De-archiveer leerling";
+      archiveBtn.onclick = () => toggleArchive(leerling = l, true);
+    }
     document.getElementById("notesBtn").onclick = () => {
       window.location.href = `notes.html?leerling_id=${l.id}`;
     };
@@ -283,6 +291,23 @@ function archiveLeerling(leerling) {
   tx.oncomplete = () => {
     alert("Leerling gearchiveerd!");
     window.location.href = "archief.html";
+  };
+}
+
+function toggleArchive(leerling, actiefStatus) {
+  leerling.Actief = actiefStatus;
+
+  const tx = db.transaction("leerlingen", "readwrite");
+  const store = tx.objectStore("leerlingen");
+  store.put(leerling);
+
+  tx.oncomplete = () => {
+    if (actiefStatus) {
+      alert("Leerling is weer actief gemaakt!");
+    } else {
+      alert("Leerling gearchiveerd!");
+    }
+    loadLeerling();
   };
 }
 
