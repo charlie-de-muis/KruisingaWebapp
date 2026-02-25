@@ -37,6 +37,15 @@
     input[type="checkbox"] {
       margin-left: 0;
     }
+
+    /* Titel blijft gecentreerd */
+    .page h2 {
+      text-align: center;
+    }
+
+    .page h3 {
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -216,7 +225,15 @@ function enableEditing(leerling) {
       const field = this.dataset.field;
       const value = this.textContent.trim();
 
-      this.innerHTML = `<input value="${value}" data-field="${field}" />`;
+      const isEncrypted = this.classList.contains("encrypted");
+
+      this.innerHTML = `
+        <input 
+          value="${value}" 
+          data-field="${field}" 
+          ${isEncrypted ? 'data-encrypted="true"' : ""}
+        />
+      `;
     });
   });
 
@@ -224,7 +241,7 @@ function enableEditing(leerling) {
 }
 
 async function saveChanges(leerling) {
-  const inputs = document.querySelectorAll("#profiel input[type='text'], #profiel input[type='date'], #profiel input[type='number']");
+  const inputs = document.querySelectorAll("#profiel input");
   for (const input of inputs) {
     const field = input.dataset.field;
     let value = input.value;
@@ -234,7 +251,7 @@ async function saveChanges(leerling) {
       continue;
     }
 
-    if (input.parentElement.querySelector(".encrypted") || input.dataset.encrypted === "true") {
+    if (input.dataset.encrypted === "true") {
       leerling[field] = await encrypt(value);
     } else {
       leerling[field] = value;
@@ -251,7 +268,6 @@ async function saveChanges(leerling) {
   store.put(leerling);
 
   tx.oncomplete = () => {
-    alert("Wijzigingen opgeslagen!");
     loadLeerling();
   };
 }

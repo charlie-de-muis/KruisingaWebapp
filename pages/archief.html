@@ -7,6 +7,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Archief Leerlingen</title>
   <link rel="stylesheet" href="style.css">
+<style>
+/* Zorg dat alleen deze page netjes gecentreerd staat */
+.page {
+  margin: 0 auto;
+  max-width: 500px;   /* bepaalt hoe breed het blok mag zijn */
+  width: 100%;
+}
+
+/* Titel blijft gecentreerd */
+.page h2 {
+  text-align: center;
+}
+
+/* Lijst netjes onder de titel */
+#leerlingList {
+  list-style: none;
+  padding: 0;
+  margin: 1em 0 0 0;
+}
+
+/* Elke regel: emoji + tekst */
+#leerlingList li {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+/* Emoji */
+#leerlingList li::before {
+  content: "🚙💨";
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+/* Naam */
+#leerlingList li span.naam {
+  font-weight: 500;
+}
+
+/* CBR nummer */
+#leerlingList li span.cbr {
+  color: var(--kruisingablauw);
+  font-weight: 500;
+}
+</style>
 </head>
 <body>
   <div class="page">
@@ -126,15 +173,24 @@
 
       leerlingen.forEach(l => {
         const li = document.createElement("li");
-        li.textContent = `${l.Voornaam} ${l.Achternaam} (CBR: ${l.CBRnummer})`;
-        li.style.cursor = "pointer";
+
+        // Naam
+        const naamSpan = document.createElement("span");
+        naamSpan.textContent = `${l.Voornaam} ${l.Achternaam}`;
+        naamSpan.classList.add("naam");
+
+        // CBR nummer
+        const cbrSpan = document.createElement("span");
+        cbrSpan.textContent = `CBR: ${l.CBRnummer}`;
+        cbrSpan.classList.add("cbr");
+
+        li.appendChild(naamSpan);
+        li.appendChild(cbrSpan);
+
+        if (!l.Actief) li.style.opacity = "0.5";
         li.addEventListener("click", () => {
-          // ga naar profielpagina met leerling ID als query param
           window.location.href = `profile.html?id=${l.id}`;
         });
-
-        // Optioneel: stijl gearchiveerde leerlingen
-        if (!l.Actief) li.style.opacity = "0.5";
 
         listEl.appendChild(li);
       });

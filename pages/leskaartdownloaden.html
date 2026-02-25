@@ -14,8 +14,11 @@
 <select id="leerlingSelect">
   <option value="">Selecteer leerling</option>
 </select>
-<button id="downloadBtn">Download</button>
-<button class="homebuttons" onclick="window.history.back()">Terug</button>
+<div>
+  <button id="downloadBtn">Download</button>
+  <button class="homebuttons" onclick="window.history.back()">Terug</button>
+</div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -128,7 +131,7 @@ async function downloadLeskaartPDF(leerling, leskaart) {
     body: body,
     theme: 'grid',
     styles: { fontSize: 10, cellPadding: 2 },
-    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+    headStyles: { fillColor: [5, 161, 227], textColor: 255, fontStyle: 'bold' },
     margin: { top: 25, left: 10, right: 10 },
     pageBreak: 'auto',
   });

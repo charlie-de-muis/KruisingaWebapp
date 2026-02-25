@@ -8,35 +8,6 @@
   <title>Leskaart</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    #tableContainer {
-      overflow: auto;
-      max-height: 80vh;
-      border: 1px solid #ccc;
-    }
-    table {
-      border-collapse: collapse;
-      width: max-content;
-    }
-    th, td {
-      border: 1px solid #999;
-      padding: 4px;
-      text-align: center;
-      min-width: 50px;
-    }
-    th.sticky {
-      position: sticky;
-      top: 0;
-      background: #2980b9;
-      color: white;
-      z-index: 2;
-    }
-    td.sticky {
-      position: sticky;
-      left: 0;
-      background: #ecf0f1;
-      z-index: 1;
-      font-weight: bold;
-    }
     input[type="number"] {
       width: 40px;
     }
@@ -208,7 +179,6 @@ async function saveLeskaart() {
     const putRequest = storeWrite.put(record);
 
     putRequest.onsuccess = () => {
-      alert("Leskaart opgeslagen!");
       window.location.href = "../index.html";
     };
 
