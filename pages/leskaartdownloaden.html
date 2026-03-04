@@ -14,11 +14,11 @@
 <select id="leerlingSelect">
   <option value="">Selecteer leerling</option>
 </select>
+
 <div>
   <button id="downloadBtn">Download</button>
   <button class="homebuttons" onclick="window.history.back()">Terug</button>
 </div>
-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -26,21 +26,16 @@
 <script>
 let db;
 
-// ===== IndexedDB openen =====
+// database
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("KruisingaDB", 3);
-
-    request.onsuccess = () => {
-      db = request.result;
-      resolve(db);
-    };
-
+    request.onsuccess = () => { db = request.result; resolve(db); };
     request.onerror = () => reject(request.error);
   });
 }
 
-// ===== Leerlingen ophalen =====
+// dropdown vullen
 async function loadLeerlingen() {
   const tx = db.transaction("leerlingen", "readonly");
   const store = tx.objectStore("leerlingen");
@@ -60,7 +55,7 @@ async function loadLeerlingen() {
   };
 }
 
-// ===== Leskaart ophalen =====
+// fetch data - leskaart
 async function getLeskaart(leerlingId) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction("leskaarten", "readonly");
@@ -73,7 +68,7 @@ async function getLeskaart(leerlingId) {
   });
 }
 
-// ===== Leerling ophalen =====
+// fetch data - leerling
 async function getLeerling(leerlingId) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction("leerlingen", "readonly");
@@ -85,64 +80,23 @@ async function getLeerling(leerlingId) {
   });
 }
 
-// ===== PDF code =====
 const onderdelenNamen = [
-  "1", 
-  "2", 
-  "3", 
-  "4",
-  "5",
-  "6", 
-  "7", 
-  "8", 
-  "9",
-  "10",
-  "11",
-  "12",
-  "13",
-  "14",
-  "15",
-  "16",
-  "17",
-  "18",
-  "19",
-  "20",
-  "21",
-  "22",
-  "23",
-  "24",
-  "25",
-  "26",
-  "27a",
-  "27b",
-  "28",
-  "28a",
-  "28b",
-  "28g",
-  "28h",
-  "29a",
-  "29b",
-  "H",
-  "H",
-  "H",
-  "30",
-  "31",
-  "32",
-  "33",
-  "34",
-  "35",
-  "36",
-  "37",
-  "38",
-  "39",
-  "40",
-  "41",
-  "42",
-  "43",
-  "44",
-  "45",
-  "46"
+  "1","2","3","4","5","6","7","8","9","10",
+  "11","12","13","14","15","16","17","18","19","20",
+  "21","22","23","24","25","26","27a","27b","28","28a",
+  "28b","28g","28h","29a","29b","H","H","H","30","31",
+  "32","33","34","35","36","37","38","39","40","41",
+  "42","43","44","45","46"
 ];
+
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
 
 async function downloadLeskaartPDF(leerling, leskaart) {
   const { jsPDF } = window.jspdf;
@@ -151,24 +105,36 @@ async function downloadLeskaartPDF(leerling, leskaart) {
   doc.setFontSize(16);
   doc.text(`Leskaart ${leerling.Voornaam} ${leerling.Achternaam}`, 14, 20);
 
-  // Bepaal hoeveel lessen daadwerkelijk gevuld zijn
+  // hoogste gebruikte les bepalen
   const ingevuldeLessen = Object.keys(leskaart)
     .filter(k => leskaart[k] !== null && leskaart[k] !== undefined)
-    .map(k => Number(k.match(/l(\d+)$/)[1]));
+    .map(k => {
+      const match = k.match(/l(\d+)$/);
+      return match ? Number(match[1]) : null;
+    })
+    .filter(Boolean);
+
   const maxLes = ingevuldeLessen.length ? Math.max(...ingevuldeLessen) : 0;
 
-  // Header: onderdelen horizontaal
-  const header = ["Les"];
+  // Header
+  const header = ["Les", "Datum", "Duur"];
   onderdelenNamen.forEach(name => header.push(name));
 
-  // Body: lessen verticaal
+  // Body
   const body = [];
+
   for (let les = 1; les <= maxLes; les++) {
-    const row = [ `L${les}` ];
+    const row = [];
+
+    row.push(`L${les}`);
+    row.push(formatDate(leskaart[`datum_l${les}`]));
+    row.push(leskaart[`duur_l${les}`] ?? "");
+
     onderdelenNamen.forEach((_, idx) => {
       const key = `o${idx+1}l${les}`;
       row.push(leskaart[key] ?? "");
     });
+
     body.push(row);
   }
 
@@ -177,44 +143,44 @@ async function downloadLeskaartPDF(leerling, leskaart) {
     head: [header],
     body: body,
     theme: 'grid',
-
     styles: {
-      fontSize: 7,          // 👈 kleiner lettertype
-      cellPadding: 1,       // 👈 minder ruimte in cellen
+      fontSize: 6,
+      cellPadding: 1,
       halign: 'center',
       valign: 'middle'
     },
-
     headStyles: {
       fillColor: [5, 161, 227],
       textColor: 255,
       fontStyle: 'bold',
-      fontSize: 7
+      fontSize: 6
     },
-
-    tableWidth: 'wrap',     // 👈 tabel zo compact mogelijk
-    margin: { left: 5, right: 5 },  // 👈 meer ruimte benutten
-    pageBreak: 'auto',
+    tableWidth: 'wrap',
+    margin: { left: 5, right: 5 },
+    pageBreak: 'auto'
   });
 
   doc.save(`Leskaart_${leerling.Voornaam}_${leerling.Achternaam}.pdf`);
 }
 
-// ===== Event listener =====
+// click events
 document.getElementById("downloadBtn").addEventListener("click", async () => {
   const leerlingId = document.getElementById("leerlingSelect").value;
   if (!leerlingId) return alert("Selecteer eerst een leerling");
 
   const leerling = await getLeerling(leerlingId);
   const leskaart = await getLeskaart(leerlingId);
+
   downloadLeskaartPDF(leerling, leskaart);
 });
 
-// ===== Init =====
+
+// init
 window.addEventListener("DOMContentLoaded", async () => {
   await openDB();
   await loadLeerlingen();
 });
 </script>
+
 </body>
 </html>

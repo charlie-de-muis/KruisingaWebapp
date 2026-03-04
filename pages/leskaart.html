@@ -91,9 +91,7 @@ const onderdelenNamen = [
 const onderdelen = onderdelenNamen.length;
 const lessen = 60;
 
-/* =========================
-   DATABASE
-========================= */
+// database
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("KruisingaDB", 3);
@@ -117,9 +115,8 @@ function openDB() {
   });
 }
 
-/* =========================
-   LEERLINGEN LADEN
-========================= */
+
+// leerlingen inladen
 function loadLeerlingen() {
   const tx = db.transaction("leerlingen", "readonly");
   const store = tx.objectStore("leerlingen");
@@ -134,16 +131,21 @@ function loadLeerlingen() {
   };
 }
 
-/* =========================
-   TABEL GENEREREN (Lessen verticaal)
-========================= */
+
+// tabel maken
 function generateTable() {
-  let html = `<table><tr><th class="sticky">Les</th>`;
+  let html = `<table><tr>
+    <th class="sticky">Les</th>
+    <th class="sticky">Datum</th>
+    <th class="sticky">Duur (min)</th>`;
   onderdelenNamen.forEach(naam => html += `<th class="sticky">${naam}</th>`);
   html += `</tr>`;
 
   for (let les = 1; les <= lessen; les++) {
-    html += `<tr><td class="sticky">L${les}</td>`;
+    html += `<tr>
+      <td class="sticky">L${les}</td>
+      <td><input type="date" data-les="${les}" data-type="datum"></td>
+      <td><input type="number" min="0" max="300" style="width:60px;" data-les="${les}" data-type="duur"></td>`;
     for (let ond = 1; ond <= onderdelen; ond++) {
       html += `<td><input type="number" min="1" max="8" data-les="${les}" data-ond="${ond}"></td>`;
     }
@@ -160,9 +162,8 @@ function generateTable() {
   addAutoFillLogic();
 }
 
-/* =========================
-   AUTO FILL
-========================= */
+
+// autofill tabel
 function addAutoFillLogic() {
   const inputs = document.querySelectorAll("input[type='number']");
   inputs.forEach(input => {
@@ -192,9 +193,8 @@ function addAutoFillLogic() {
   });
 }
 
-/* =========================
-   OPSLAAN
-========================= */
+
+// leskaart opslaan
 async function saveLeskaart() {
   const leerlingId = Number(document.getElementById("leerlingSelect").value);
   if (!leerlingId) {
@@ -203,9 +203,26 @@ async function saveLeskaart() {
   }
 
   const data = {};
-  document.querySelectorAll("input[type='number']").forEach(input => {
-    const key = `o${input.dataset.ond}l${input.dataset.les}`;
-    data[key] = input.value ? Number(input.value) : null;
+  document.querySelectorAll("input").forEach(input => {
+
+    const les = input.dataset.les;
+
+    // Onderdelen
+    if (input.dataset.ond) {
+      const key = `o${input.dataset.ond}l${les}`;
+      data[key] = input.value ? Number(input.value) : null;
+    }
+
+    // Datum
+    if (input.dataset.type === "datum") {
+      data[`datum_l${les}`] = input.value || null;
+    }
+
+    // Duur
+    if (input.dataset.type === "duur") {
+      data[`duur_l${les}`] = input.value ? Number(input.value) : null;
+    }
+
   });
 
   // Eerst kijken of er al een leskaart is
@@ -241,9 +258,8 @@ async function saveLeskaart() {
   };
 }
 
-/* =========================
-   LADEN BESTAANDE DATA
-========================= */
+
+// bestaande kaarten downloaden
 function loadLeskaart(leerlingId) {
   generateTable();
   const tx = db.transaction("leskaarten", "readonly");
@@ -258,13 +274,22 @@ function loadLeskaart(leerlingId) {
     document.querySelectorAll("input[type='number']").forEach(input => {
       const key = `o${input.dataset.ond}l${input.dataset.les}`;
       if (data[key] !== null && data[key] !== undefined) input.value = data[key];
+
+    document.querySelectorAll("input[data-type='datum']").forEach(input => {
+      const les = input.dataset.les;
+      input.value = data[`datum_l${les}`] || "";
+    });
+
+    document.querySelectorAll("input[data-type='duur']").forEach(input => {
+      const les = input.dataset.les;
+      input.value = data[`duur_l${les}`] || "";
+    });
     });
   };
 }
 
-/* =========================
-   EVENTS
-========================= */
+
+// events
 document.addEventListener("DOMContentLoaded", async () => {
   await openDB();
   loadLeerlingen();

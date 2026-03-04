@@ -45,7 +45,7 @@ function openDB() {
   });
 }
 
-// ===== Download backup =====
+// download backup
 async function downloadBackup() {
   const db = await openDB();
   const backup = {};
@@ -70,7 +70,7 @@ async function downloadBackup() {
   URL.revokeObjectURL(url);
 }
 
-// ===== Upload backup =====
+// upload backup
 async function uploadBackup(file) {
   const text = await file.text();
   const data = JSON.parse(text);
@@ -109,7 +109,7 @@ async function uploadBackup(file) {
   alert("Backup succesvol teruggezet!");
 }
 
-// ===== Events =====
+// events
 document.getElementById("downloadBackup").addEventListener("click", downloadBackup);
 document.getElementById("uploadBackupBtn").addEventListener("click", () => {
   document.getElementById("uploadFile").click();
