@@ -1,4 +1,4 @@
-const CACHE_NAME = "kruisinga-cache-v7";
+const CACHE_NAME = "kruisinga-cache-v8";
 
 const urlsToCache = [
   "./",
