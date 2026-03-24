@@ -221,11 +221,9 @@ async function loadLeerling() {
       ${createField("CBRnummer", l.CBRnummer)}
       ${createField("Theoriedatum", formatDate(l.Theoriedatum))}
       ${createSelectField("pakket", l.pakket, "Pakket", [
-        "Losse lessen",
-        "10 lessen pakket",
-        "20 lessen pakket",
-        "30 lessen pakket",
-        "Examengarantie pakket"
+            "45 uur",
+            "50 uur",
+            "55 uur"
       ])}
       ${createCheckbox("DigiDGemachtigd", l.DigiDGemachtigd, "DigiD gemachtigd")}
       ${createCheckbox("Gezondheidsverklaring", l.Gezondheidsverklaring, "Gezondheidsverklaring ingediend")}
