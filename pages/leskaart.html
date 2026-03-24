@@ -26,6 +26,7 @@
   <button id="saveBtn" style="margin-top: 8px;">Opslaan</button>
   <a href="../index.html"><button class="homebuttons">Terug</button></a>
 </div>
+<div id="totalTime" style="margin-top:10px; font-weight:bold;"></div>
 <div id="tableContainer"></div>
 
 
@@ -160,8 +161,23 @@ function generateTable() {
   container.scrollLeft = 0;
 
   addAutoFillLogic();
+  document.querySelectorAll("input[data-type='duur']").forEach(input => {input.addEventListener("input", updateTotalTime);});
 }
 
+function updateTotalTime() {
+  let totalMinutes = 0;
+
+  document.querySelectorAll("input[data-type='duur']").forEach(input => {
+    const val = Number(input.value);
+    if (!isNaN(val)) totalMinutes += val;
+  });
+
+  const uren = Math.floor(totalMinutes / 60);
+  const minuten = totalMinutes % 60;
+
+  document.getElementById("totalTime").textContent =
+    `Totale lestijd: ${uren}u ${minuten}m (${totalMinutes} min)`;
+}
 
 // autofill tabel
 function addAutoFillLogic() {
@@ -271,20 +287,28 @@ function loadLeskaart(leerlingId) {
     const result = request.result;
     if (!result) return;
     const data = result.data;
-    document.querySelectorAll("input[type='number']").forEach(input => {
-      const key = `o${input.dataset.ond}l${input.dataset.les}`;
-      if (data[key] !== null && data[key] !== undefined) input.value = data[key];
 
+    // Onderdelen
+    document.querySelectorAll("input[data-ond]").forEach(input => {
+      const key = `o${input.dataset.ond}l${input.dataset.les}`;
+      if (data[key] !== null && data[key] !== undefined) {
+        input.value = data[key];
+      }
+    });
+
+    // Datum
     document.querySelectorAll("input[data-type='datum']").forEach(input => {
       const les = input.dataset.les;
       input.value = data[`datum_l${les}`] || "";
     });
 
+    // Duur
     document.querySelectorAll("input[data-type='duur']").forEach(input => {
       const les = input.dataset.les;
       input.value = data[`duur_l${les}`] || "";
     });
-    });
+
+    updateTotalTime(); // 👈 belangrijk
   };
 }
 

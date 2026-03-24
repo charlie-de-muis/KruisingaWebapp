@@ -73,7 +73,7 @@
 let db;
 const APP_KEY = "tSrOLboXzoLGawI3CfjNtK3v5VGFWtGh";
 
-// ===== IndexedDB setup =====
+// IndexedDB setup
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("KruisingaDB", 3);
@@ -87,7 +87,7 @@ function openDB() {
   });
 }
 
-// ===== Encrypt / Decrypt =====
+// Encrypt / Decrypt
 async function getKey() {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -120,7 +120,7 @@ async function decrypt(field) {
   return dec.decode(decrypted);
 }
 
-// ===== Helpers =====
+// Helpers
 function getIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return Number(params.get("id"));
@@ -163,7 +163,23 @@ function createDateField(field, value, label) {
   `;
 }
 
-// ===== Load leerling =====
+function createSelectField(field, value, label, options) {
+  return `
+    <div class="field-row">
+      <span class="label">${label}:</span>
+      <select data-field="${field}">
+        <option value="">-- kies --</option>
+        ${options.map(opt => `
+          <option value="${opt}" ${opt === value ? "selected" : ""}>
+            ${opt}
+          </option>
+        `).join("")}
+      </select>
+    </div>
+  `;
+}
+
+// Load leerling
 async function loadLeerling() {
   const id = getIdFromUrl();
   const tx = db.transaction("leerlingen", "readonly");
@@ -178,6 +194,8 @@ async function loadLeerling() {
     if (l.DigiDGemachtigd === undefined) l.DigiDGemachtigd = false;
     if (l.Gezondheidsverklaring === undefined) l.Gezondheidsverklaring = false;
     if (!l.Examendatum) l.Examendatum = "";
+    if (!l.module3) l.module3 = "";
+    if (!l.pakket) l.pakket = "";
 
     document.getElementById("leerlingnaam").textContent = l.Voornaam + " " + l.Achternaam;
     const statusEl = document.getElementById("status");
@@ -202,8 +220,16 @@ async function loadLeerling() {
       ${createField("MedischeBijzonderheden", await decrypt(l.MedischeBijzonderheden), true)}
       ${createField("CBRnummer", l.CBRnummer)}
       ${createField("Theoriedatum", formatDate(l.Theoriedatum))}
+      ${createSelectField("pakket", l.pakket, "Pakket", [
+        "Losse lessen",
+        "10 lessen pakket",
+        "20 lessen pakket",
+        "30 lessen pakket",
+        "Examengarantie pakket"
+      ])}
       ${createCheckbox("DigiDGemachtigd", l.DigiDGemachtigd, "DigiD gemachtigd")}
       ${createCheckbox("Gezondheidsverklaring", l.Gezondheidsverklaring, "Gezondheidsverklaring ingediend")}
+      ${createDateField("module3", l.module3, "Module 3 toets")}
       ${createDateField("Examendatum", l.Examendatum, "Examendatum")}
     `;
 
@@ -224,7 +250,7 @@ async function loadLeerling() {
   };
 }
 
-// ===== Editing / Save =====
+// Editing / Save
 function enableEditing(leerling) {
   document.querySelectorAll(".value").forEach(el => {
     el.addEventListener("click", function () {
@@ -249,7 +275,7 @@ function enableEditing(leerling) {
 }
 
 async function saveChanges(leerling) {
-  const inputs = document.querySelectorAll("#profiel input");
+  const inputs = document.querySelectorAll("#profiel input, #profiel select");
   for (const input of inputs) {
     const field = input.dataset.field;
     let value = input.value;
@@ -280,7 +306,7 @@ async function saveChanges(leerling) {
   };
 }
 
-// ===== Archive =====
+// Archive 
 function archiveLeerling(leerling) {
   leerling.Actief = false;
 
@@ -311,7 +337,7 @@ function toggleArchive(leerling, actiefStatus) {
   };
 }
 
-// ===== Init =====
+
 window.addEventListener("DOMContentLoaded", async () => {
   await openDB();
   await loadLeerling();
