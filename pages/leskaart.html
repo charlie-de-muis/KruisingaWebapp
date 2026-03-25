@@ -32,64 +32,85 @@
 
 <script>
 let db;
-const onderdelenNamen = [
-  "Controle buiten de auto", 
-  "Controle in de auto", 
-  "Instappen", 
-  "Uitstappen",
-  "Zithouding",
-  "Stuurhouding", 
-  "Afstellen spiegels", 
-  "Starten/afzetten", 
-  "Gas geven",
-  "Scannen",
-  "Sturen",
-  "Positie",
-  "Remmen",
-  "Ontkoppelen",
-  "Stoppen",
-  "Koppelen",
-  "Schakelen",
-  "Technisch wegrijden",
-  "Wegrijden/stoppen",
-  "Volgafstand",
-  "Ruimtekussen",
-  "Tegemoetkomen",
-  "Ingehaald worden",
-  "Kruispunten",
-  "Afslaan",
-  "Hellingproef",
-  "Recht achteruit",
-  "Bocht achteruit",
-  "Parkeren",
-  "Vooruit fileparkeren",
-  "Achteruit fileparkeren",
-  "Vooruit in vak",
-  "Achteruit in vak",
-  "Omkeren halve draai",
-  "Omkeren steken",
-  "Kruispunten",
-  "Afslaan",
-  "Bijzondere verrichtingen & scan",
-  "Zijdelings verplaatsen",
-  "Voorbijgaan",
-  "Inhalen",
-  "Invoegen",
-  "Uitvoegen",
-  "Rotonde",
-  "Erven",
-  "Spoorwegovergang",
-  "Voetgangersoversteekplaats",
-  "Tram- en bushalte",
-  "Moeilijke omstandigheden",
-  "Zelfstandige ritvoorbereiding",
-  "ROSO-training",
-  "Milieuverantwoord rijden",
-  "Defensief rijden",
-  "Aangepast en besluitvaardig",
-  "Mentaliteit & verantwoordelijkheid"
+
+const modules = [
+  {
+    naam: "Module 1: Voertuigbediening en -beheersing",
+    onderdelen: [
+      "Controle buiten de auto", 
+      "Controle in de auto", 
+      "Instappen", 
+      "Uitstappen",
+      "Zithouding",
+      "Stuurhouding", 
+      "Afstellen spiegels", 
+      "Starten/afzetten", 
+      "Gas geven",
+      "Scannen",
+      "Sturen",
+      "Positie",
+      "Remmen",
+      "Ontkoppelen",
+      "Stoppen",
+      "Koppelen",
+      "Schakelen",
+      "Technisch wegrijden"
+    ]
+  },
+  {
+    naam: "Module 2: Eenvoudige verkeerssituaties",
+    onderdelen: [
+      "Wegrijden/stoppen",
+      "Volgafstand",
+      "Ruimtekussen",
+      "Tegemoetkomen",
+      "Ingehaald worden",
+      "Kruispunten",
+      "Afslaan",
+      "Hellingproef",
+      "Recht achteruit",
+      "Bocht achteruit",
+      "Parkeren"
+    ]
+  },
+  {
+    naam: "Module 3: Complexe verkeerssituaties",
+    onderdelen: [
+      "Vooruit fileparkeren",
+      "Achteruit fileparkeren",
+      "Vooruit in vak",
+      "Achteruit in vak",
+      "Omkeren halve draai",
+      "Omkeren steken",
+      "Kruispunten",
+      "Afslaan",
+      "Bijzondere verrichtingen & scan",
+      "Zijdelings verplaatsen",
+      "Voorbijgaan",
+      "Inhalen",
+      "Invoegen",
+      "Uitvoegen",
+      "Rotonde",
+      "Erven",
+      "Spoorwegovergang",
+      "Voetgangersoversteekplaats",
+      "Tram- en bushalte"
+    ]
+  },
+  {
+    naam: "Module 4: Verantwoord rijden",
+    onderdelen: [
+      "Moeilijke omstandigheden",
+      "Zelfstandige ritvoorbereiding",
+      "ROSO-training",
+      "Milieuverantwoord rijden",
+      "Defensief rijden",
+      "Aangepast en besluitvaardig",
+      "Mentaliteit & verantwoordelijkheid"
+    ]
+  }
 ];
-const onderdelen = onderdelenNamen.length;
+
 const lessen = 60;
 
 // database
@@ -135,33 +156,83 @@ function loadLeerlingen() {
 
 // tabel maken
 function generateTable() {
-  let html = `<table><tr>
-    <th class="sticky">Les</th>
-    <th class="sticky">Datum</th>
-    <th class="sticky">Duur (min)</th>`;
-  onderdelenNamen.forEach(naam => html += `<th class="sticky">${naam}</th>`);
+  let html = `<table><tr><th class="sticky">Onderdeel</th>`;
+
+  // lessen als kolommen
+  for (let les = 1; les <= lessen; les++) {
+    html += `<th class="sticky">L${les}</th>`;
+  }
   html += `</tr>`;
 
+  // datum rij
+  html += `<tr><td class="sticky">Datum</td>`;
   for (let les = 1; les <= lessen; les++) {
-    html += `<tr>
-      <td class="sticky">L${les}</td>
-      <td><input type="date" data-les="${les}" data-type="datum"></td>
-      <td><input type="number" min="0" max="300" style="width:60px;" data-les="${les}" data-type="duur"></td>`;
-    for (let ond = 1; ond <= onderdelen; ond++) {
-      html += `<td><input type="number" min="1" max="8" data-les="${les}" data-ond="${ond}"></td>`;
-    }
-    html += `</tr>`;
+    html += `<td><input type="date" data-les="${les}" data-type="datum"></td>`;
   }
+  html += `</tr>`;
+
+  // duur rij
+  html += `<tr><td class="sticky">Duur (min)</td>`;
+  for (let les = 1; les <= lessen; les++) {
+    html += `<td><input type="number" min="0" max="300" data-les="${les}" data-type="duur" style="width:60px;"></td>`;
+  }
+  html += `</tr>`;
+
+  let onderdeelIndex = 1;
+
+  modules.forEach((module, mIndex) => {
+
+    // module header (klikbaar)
+    html += `
+      <tr class="module-header" data-module="${mIndex}">
+        <td colspan="${lessen + 1}" style="font-weight:bold; cursor:pointer;">
+          ${module.naam}
+        </td>
+      </tr>
+    `;
+
+    module.onderdelen.forEach(naam => {
+      html += `<tr class="module-${mIndex}">
+        <td class="sticky">${naam}</td>`;
+
+      for (let les = 1; les <= lessen; les++) {
+        html += `
+          <td>
+            <input type="number" min="1" max="8"
+              data-les="${les}"
+              data-ond="${onderdeelIndex}">
+          </td>`;
+      }
+
+      html += `</tr>`;
+      onderdeelIndex++;
+    });
+
+  });
 
   html += `</table>`;
   document.getElementById("tableContainer").innerHTML = html;
 
-  const container = document.getElementById("tableContainer");
-  container.scrollTop = 0;
-  container.scrollLeft = 0;
-
+  addModuleToggle();
   addAutoFillLogic();
-  document.querySelectorAll("input[data-type='duur']").forEach(input => {input.addEventListener("input", updateTotalTime);});
+
+  document.querySelectorAll("input[data-type='duur']")
+    .forEach(input => input.addEventListener("input", updateTotalTime));
+}
+
+function addModuleToggle() {
+  document.querySelectorAll(".module-header").forEach(header => {
+    header.addEventListener("click", function() {
+      const moduleIndex = this.dataset.module;
+      const rows = document.querySelectorAll(`.module-${moduleIndex}`);
+
+      const isHidden = rows[0].style.display === "none";
+
+      rows.forEach(row => {
+        row.style.display = isHidden ? "" : "none";
+      });
+    });
+  });
 }
 
 function updateTotalTime() {
